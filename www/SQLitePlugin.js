@@ -173,7 +173,7 @@ Contact for commercial license: sales@litehelpers.net
   SQLitePlugin.prototype.open = function(success, error) {
     var openerrorcb, opensuccesscb, step2;
     if (this.dbname in this.openDBs) {
-      console.log('database already open: ' + this.dbname);
+      //console.log('database already open: ' + this.dbname);
       this.dbid = this.dbidmap[this.dbname];
       nextTick((function(_this) {
         return function() {
@@ -207,7 +207,7 @@ Contact for commercial license: sales@litehelpers.net
       })(this);
       openerrorcb = (function(_this) {
         return function() {
-          console.log('OPEN database: ' + _this.dbname + ' FAILED, aborting any pending transactions');
+          //console.log('OPEN database: ' + _this.dbname + ' FAILED, aborting any pending transactions');
           if (!!error) {
             error(newSQLError('Could not open database'));
           }
