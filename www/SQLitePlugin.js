@@ -81,7 +81,7 @@ Contact for commercial license: sales@litehelpers.net
     this.openSuccess = openSuccess;
     this.openError = openError;
     this.openSuccess || (this.openSuccess = function() {
-      console.log("DB opened: " + dbname);
+      //console.log("DB opened: " + dbname);
     });
     this.openError || (this.openError = function(e) {
       console.log(e.message);
@@ -181,11 +181,11 @@ Contact for commercial license: sales@litehelpers.net
         };
       })(this));
     } else {
-      console.log('OPEN database: ' + this.dbname);
+      //console.log('OPEN database: ' + this.dbname);
       opensuccesscb = (function(_this) {
         return function(fjinfo) {
           var txLock;
-          console.log('OPEN database: ' + _this.dbname + ' - OK');
+          //console.log('OPEN database: ' + _this.dbname + ' - OK');
           if (!!fjinfo && !!fjinfo.dbid) {
             _this.dbidmap[_this.dbname] = _this.dbid = fjinfo.dbid;
             _this.fjmap[_this.dbname] = true;
