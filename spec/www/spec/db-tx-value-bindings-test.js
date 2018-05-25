@@ -5,7 +5,7 @@ var MYTIMEOUT = 12000;
 var DEFAULT_SIZE = 5000000; // max to avoid popup in safari/ios
 
 var isWP8 = /IEMobile/.test(navigator.userAgent); // Matches WP(7/8/8.1)
-var isWindows = /Windows /.test(navigator.userAgent); // Windows (8.1)
+var isWindows = /Windows /.test(navigator.userAgent); // Windows 8.1/Windows Phone 8.1/Windows 10
 var isAndroid = !isWindows && /Android/.test(navigator.userAgent);
 var isMac = /Macintosh/.test(navigator.userAgent);
 var isWKWebView = !isWindows && !isAndroid && !isWP8 && !isMac && !!window.webkit && !!window.webkit.messageHandlers;
@@ -14,6 +14,10 @@ var isWKWebView = !isWindows && !isAndroid && !isWP8 && !isMac && !!window.webki
 // the default Android implementation and implementation #2,
 // this test script will also apply the androidLockWorkaround: 1 option
 // in case of implementation #2.
+// The following openDatabase settings are used for Plugin-implementation-2
+// on Android:
+// - androidDatabaseImplementation: 2
+// - androidLockWorkaround: 1
 var scenarioList = [
   isAndroid ? 'Plugin-implementation-default' : 'Plugin',
   'HTML5',
@@ -26,7 +30,7 @@ var mytests = function() {
 
   for (var i=0; i<scenarioCount; ++i) {
 
-    describe(scenarioList[i] + ': tx stored value bindings test(s)', function() {
+    describe(scenarioList[i] + ': tx value bindings (stored value bindings) test(s)', function() {
       var scenarioName = scenarioList[i];
       var suiteName = scenarioName + ': ';
       var isWebSql = (i === 1);
@@ -54,7 +58,7 @@ var mytests = function() {
 
       describe(suiteName + 'transaction column value insertion test(s)', function() {
 
-        it(suiteName + 'INSERT US-ASCII TEXT string ("Test 123"), SELECT the data, check, and check HEX value', function(done) {
+        it(suiteName + 'INSERT US-ASCII TEXT string ("Test 123"), SELECT the data, check, and check HEX value [default sqlite HEX encoding: UTF-6le on Windows & Android 4.1-4.3 (WebKit) Web SQL, UTF-8 otherwise]', function(done) {
           var db = openDatabase('INSERT-ascii-text-string-and-check.db', '1.0', 'Demo', DEFAULT_SIZE);
 
           db.transaction(function(tx) {
@@ -79,7 +83,7 @@ var mytests = function() {
                     expect(rs3.rows.length).toBe(1);
 
                     var hexvalue = rs3.rows.item(0).hexvalue;
-                    if (isWindows)
+                    if (isWindows || (isWebSql && isAndroid && /Android 4.[1-3]/.test(navigator.userAgent)))
                       expect(hexvalue).toBe('54006500730074002000310032003300'); // (UTF-16le)
                     else
                       expect(hexvalue).toBe('5465737420313233'); // (UTF-8)
@@ -100,8 +104,7 @@ var mytests = function() {
           });
         }, MYTIMEOUT);
 
-        it(suiteName + 'INSERT TEXT string with é (UTF-8 2 octets), SELECT the data, check, and check HEX value [UTF-16le on Windows]', function(done) {
-          // ref: litehelpers/Cordova-sqlite-evcore-extbuild-free#19
+        it(suiteName + 'INSERT TEXT string with é (UTF-8 2 octets), SELECT the data, check, and check HEX value [default sqlite HEX encoding: UTF-6le on Windows & Android 4.1-4.3 (WebKit) Web SQL, UTF-8 otherwise]', function(done) {
           var db = openDatabase('INSERT-UTF8-2-octets-and-check.db', '1.0', 'Demo', DEFAULT_SIZE);
 
           db.transaction(function(tx) {
@@ -119,7 +122,7 @@ var mytests = function() {
                   expect(row.data).toBe('é');
 
                   tx.executeSql('SELECT HEX(data) AS hexvalue FROM test_table', [], function(tx, res) {
-                    if (isWindows)
+                    if (isWindows || (isWebSql && isAndroid && /Android 4.[1-3]/.test(navigator.userAgent)))
                       expect(res.rows.item(0).hexvalue).toBe('E900'); // (UTF-16le)
                     else
                       expect(res.rows.item(0).hexvalue).toBe('C3A9'); // (UTF-8)
@@ -140,8 +143,7 @@ var mytests = function() {
           });
         }, MYTIMEOUT);
 
-        it(suiteName + 'INSERT TEXT string with € (UTF-8 3 octets), SELECT the data, check, and check HEX value [UTF-16le on Windows]', function(done) {
-          // ref: litehelpers/Cordova-sqlite-evcore-extbuild-free#19
+        it(suiteName + 'INSERT TEXT string with € (UTF-8 3 octets), SELECT the data, check, and check HEX value [default sqlite HEX encoding: UTF-6le on Windows & Android 4.1-4.3 (WebKit) Web SQL, UTF-8 otherwise]', function(done) {
           var db = openDatabase('INSERT-UTF8-3-octets-and-check.db', '1.0', 'Demo', DEFAULT_SIZE);
 
           db.transaction(function(tx) {
@@ -159,7 +161,7 @@ var mytests = function() {
                   expect(row.data).toBe('€');
 
                   tx.executeSql('SELECT HEX(data) AS hexvalue FROM test_table', [], function(tx, res) {
-                    if (isWindows)
+                    if (isWindows || (isWebSql && isAndroid && /Android 4.[1-3]/.test(navigator.userAgent)))
                       expect(res.rows.item(0).hexvalue).toBe('AC20');
                     else
                       expect(res.rows.item(0).hexvalue).toBe('E282AC');
@@ -518,13 +520,10 @@ var mytests = function() {
 
         // NOTE: emojis and other 4-octet UTF-8 characters _evidently_ not stored
         // properly by Android-sqlite-connector / Android evcore-native-driver
-        // ref:
-        // - litehelpers/Cordova-sqlite-storage#564
-        // - litehelpers/Cordova-sqlite-evcore-extbuild-free#19
-        // - litehelpers/Android-sqlite-evcore-native-driver-free#1
-        // - litehelpers/Cordova-sqlite-evcore-extbuild-free#7 (possible crash issue on Android 5.x/...)
-        it(suiteName + 'INSERT TEXT string with emoji [\\u1F603 SMILING FACE (MOUTH OPEN)], SELECT the data, check, and check HEX [UTF-16le on Windows]' , function(done) {
-          if (!isWebSql && !isWindows && isAndroid && !isImpl2) pending('XXX TBD CRASH on Android 7.x/??? (default evcore-native-driver database access implementation)');
+        // XXX ref: litehelpers/Cordova-sqlite-evcore-extbuild-free#7 (XXX KNOWN CRASH on default Android evcore NDK implementation)
+        // XXX SIMILAR TO: litehelpers/Cordova-sqlite-storage#564
+        it(suiteName + 'INSERT TEXT string with emoji [\\u1F603 SMILING FACE (MOUTH OPEN)], SELECT the data, check, and check HEX [XXX TRUNCATION BUG REPRODUCED on Windows; default sqlite HEX encoding: UTF-6le on Windows & Android 4.1-4.3 (WebKit) Web SQL, UTF-8 otherwise]' , function(done) {
+          if (!isWebSql && !isWindows && isAndroid && !isImpl2) pending('XXX KNOWN CRASH on default Android evcore NDK database access implementation');
 
           var db = openDatabase('INSERT-emoji-and-check.db', '1.0', 'Demo', DEFAULT_SIZE);
 
@@ -552,17 +551,14 @@ var mytests = function() {
                     expect(rs3.rows).toBeDefined();
                     expect(rs3.rows.length).toBe(1);
 
-                    // TBD NOT APPLICABLE in this plugin version
-                    // (TEST SKIPPPED for default evcore-native-driver database
-                    //  access implementation due to possible crash on
-                    //  Android 7.x/???):
-                    // STOP HERE [HEX encoding BUG] for XXX TBD
+                    // XXX GONE:
                     // if (!isWebSql && !isWindows && isAndroid && !isImpl2) return done();
 
-                    if (isWindows)
+                    if (isWindows || (isWebSql && isAndroid && /Android 4.[1-3]/.test(navigator.userAgent)))
                       expect(rs3.rows.item(0).hexvalue).toBe('40003DD803DE2100'); // (UTF-16le)
+                    /* XXX TBD HEX encoding BUG IGNORED on default Android NDK access implementation (...)
                     else if (!isWebSql && isAndroid && !isImpl2)
-                      expect(rs3.rows.item(0).hexvalue).toBe('--'); // (UTF-8)
+                      expect(rs3.rows.item(0).hexvalue).toBe('--'); // (...) */
                     else
                       expect(rs3.rows.item(0).hexvalue).toBe('40F09F988321'); // (UTF-8)
 
@@ -845,8 +841,8 @@ var mytests = function() {
           });
         }, MYTIMEOUT);
 
-        it(suiteName + "INSERT inline BLOB value (X'40414243') and check stored data [SELECT BLOB value ISSUE with androidDatabaseImplementation: 2 & Windows/WP8]", function(done) {
-          var db = openDatabase('INSERT-inline-BLOB-value-and-check-stored-data.db', '1.0', 'Demo', DEFAULT_SIZE);
+        it(suiteName + "INSERT inline BLOB value (X'40414243') and check stored data [TBD SELECT BLOB value ERROR EXPECTED on Windows, WP8, and Android with androidDatabaseImplementation: 2 setting; with default sqlite HEX encoding: UTF-6le on Android 4.1-4.3 (WebKit) Web SQL, UTF-8 otherwise]", function(done) {
+          var db = openDatabase('INSERT-inline-BLOB-value-40414243-and-check-stored-data.db');
 
           db.transaction(function(tx) {
             tx.executeSql('DROP TABLE IF EXISTS test_table');
@@ -867,14 +863,19 @@ var mytests = function() {
                   expect(item.hexValue).toBe('40414243');
 
                   tx.executeSql('SELECT * FROM test_table', [], function(ignored, rs3) {
-                    if (!isWebSql && isAndroid && isImpl2) expect('Behavior changed please update this test').toBe('--');
+                    if (!isWebSql && isWP8) expect('PLUGIN BEHAVIOR CHANGED for WP8').toBe('--'); // XXX DEPRECATED PLATFORM
+                    if (!isWebSql && isWindows) expect('PLUGIN BEHAVIOR CHANGED for Windows').toBe('--');
+                    if (!isWebSql && !isWindows && isAndroid && isImpl2) expect('PLUGIN BEHAVIOR CHANGED for android.database implementation').toBe('--');
                     expect(rs3).toBeDefined();
                     expect(rs3.rows).toBeDefined();
                     expect(rs3.rows.length).toBeDefined();
 
                     var item = rs3.rows.item(0);
                     expect(item).toBeDefined();
-                    expect(item.data).toBe('@ABC');
+                    if (isWebSql && isAndroid && /Android 4.[1-3]/.test(navigator.userAgent))
+                      expect(item.data).toBe('䅀䍂'); // (UTF-16le)
+                    else
+                      expect(item.data).toBe('@ABC'); // (UTF-8)
 
                     // Close (plugin only) & finish:
                     (isWebSql) ? done() : db.close(done, done);
@@ -887,7 +888,7 @@ var mytests = function() {
                       expect(error.code).toBe(0);
 
                       if (isWP8)
-                        expect(true).toBe(true); // SKIP for now
+                        expect(error.message).toBeDefined(); // TBD (DEPRECATED PLATFORM)
                       else if (isWindows)
                         expect(error.message).toMatch(/Unsupported column type in column 0/);
                       else
@@ -1263,10 +1264,15 @@ var mytests = function() {
 
       describe(scenarioList[i] + ': special UNICODE column value binding test(s)', function() {
 
-        it(suiteName + ' stores [Unicode] string with \\u0000 (same as \\0) correctly [XXX TBD NOT SUPPORTED ON ALL PLATFORMS]', function (done) {
+        // XXX TBD ???:
+        it(suiteName + ' stores [Unicode] string with \\u0000 (same as \\0) correctly [default sqlite HEX encoding: UTF-6le on XXX TBD Android 4.1-4.3 (WebKit) Web SQL ...]', function (done) {
           // if (isWP8) pending(...); // XXX WP8 NOT SUPPORTED by this plugin version
-          if (isWindows) pending('XXX SKIP DUE TO TRUNCATION ISSUE on Windows'); // XXX TBD
-          if (!isWebSql && !isWindows && isAndroid && !isImpl2) pending('XXX TBD BROKEN on default Android evcore-native-driver database access implementation'); // XXX TBD
+          // XXX TBD ???:
+          // if (isWindows) pending('BROKEN on Windows'); // TBD (truncates on Windows)
+          // if (isWindows) pending('XXX SKIP DUE TO TRUNCATION ISSUE on Windows'); // XXX TBD
+          // XXX TBD ???:
+          // if (!isWebSql && !isWindows && isAndroid && !isImpl2) pending('BROKEN on Android-sqlite-connector implementation)');
+          // if (!isWebSql && !isWindows && isAndroid && !isImpl2) pending('XXX TBD BROKEN on default Android evcore-native-driver database access implementation'); // XXX TBD
 
           var db = openDatabase('UNICODE-store-u0000-test.db');
 
@@ -1282,8 +1288,20 @@ var mytests = function() {
                     // NOTE: WebKit Web SQL on recent versions of Android & iOS
                     // seems to use follow UTF-8 encoding/decoding rules
                     // (tested elsewhere).
-                    expect(hexValue.length).toBe(8);
-                    expect(hexValue).toBe('61006364'); // (UTF-8)
+                    if (isWebSql && isAndroid && /Android 4.[1-3]/.test(navigator.userAgent))
+                      expect(hexValue.length).toBe(16);
+                    //* XXX TBD ???:
+                    else if (!isWebSql && !isWindows && isAndroid && !isImpl2) // XXX
+                      expect(hexValue.length).toBe(14); // XXX ENCODING ISSUE REPRODUCED on default Android evcore implementation (NDK)
+                    else
+                      expect(hexValue.length).toBe(8);
+                    if (isWebSql && isAndroid && /Android 4.[1-3]/.test(navigator.userAgent))
+                      expect(hexValue).toBe('6100000063006400'); // (UTF-16le)
+                    //* ** XXX TBD ???:
+                    else if (!isWebSql && !isWindows && isAndroid && !isImpl2) // XXX
+                      expect(hexValue).toBe('61303030306364'); // XXX ENCODING ISSUE REPRODUCED on default Android evcore implementation (NDK)
+                    else
+                      expect(hexValue).toBe('61006364'); // (UTF-8)
 
                     // Check correct ordering:
                     var least = "54key3\u0000\u0000";
@@ -1319,9 +1337,9 @@ var mytests = function() {
           });
         }, MYTIMEOUT);
 
-        it(suiteName + ' returns [Unicode] string with \\u0000 (same as \\0) correctly [XXX BUG on Android & Windows: TRUNCATION on Windows; INCORRECT VALUE on Android (default evcore-native-driver database access implementation)]', function (done) {
+        it(suiteName + ' returns [Unicode] string with \\u0000 (same as \\0) correctly [XXX ENCODING ISSUE REPRODUCED on default Android evcore (NDK) implementation, TRUNCATION BUG REPRODUCED on iOS (WebKit) Web SQL, older versions of Android (WebKit) Web SQL, and Windows plugin]', function (done) {
           if (isWP8) pending('BROKEN on WP(8)'); // [BUG #202] UNICODE characters not working with WP(8)
-          if (isWebSql && isAndroid) pending('SKIP for Android (WebKit Web SQL)') // XXX TBD ...
+          if (isWebSql && /Android 5.1/.test(navigator.userAgent)) pending('SKIP on (WebKit) Web SQL on Android 5.1'); // XXX TBD INCONSISTENT RESULT on (WebKit) Web SQL on Android 5.1(.1) x86 emulator vs Samsung test device
 
           var db = openDatabase('UNICODE-retrieve-u0000-test.db');
 
@@ -1332,6 +1350,10 @@ var mytests = function() {
                   tx.executeSql('SELECT name FROM test', [], function (tx_ignored, rs) {
                     var name = rs.rows.item(0).name;
 
+                    // TRUNCATION BUG
+                    //
+                    // BUG on (WebKit) Web SQL:
+                    //
                     // There is a bug in WebKit and Chromium where strings are created
                     // using methods that rely on '\0' for termination instead of
                     // the specified byte length.
@@ -1341,16 +1363,21 @@ var mytests = function() {
                     // For now we expect this test to fail there, but when it is fixed
                     // we would like to know, so the test is coded to fail if it starts
                     // working there.
+                    //
+                    // UPDATE: SEEMS TO BE FIXED on newer versions of Android
+                    //
+                    // BUG on this plugin:
+                    //
+                    // TRUNCATION BUG REPRODUCED on Windows
 
-                    if (isWebSql) {
+                    if ((isWebSql && isAndroid && (/Android 4/.test(navigator.userAgent))) ||
+                        (isWebSql && isAndroid && (/Android 5.0/.test(navigator.userAgent))) ||
+                        (isWebSql && !isAndroid) ||
+                        (!isWebSql && isWindows)) {
                       expect(name.length).toBe(1);
                       expect(name).toBe('a');
-                    } else if (isWindows) {
-                      // XXX BUG on Windows:
-                      expect(name.length).toBe(1);
-                      expect(name).toBe('a');
-                    } else if (!isWindows && isAndroid && !isImpl2) {
-                      // XXX BUG on Android (default evcore-native-driver database access implementation):
+                    } else if (!isWebSql && !isWindows && isAndroid && !isImpl2) { // XXX
+                      // XXX ENCODING ISSUE REPRODUCED on Android (default evcore-native-driver NDK database access implementation):
                       expect(name.length).toBe(7);
                       expect(name).toBe('a0000cd');
                     } else {
@@ -1380,7 +1407,7 @@ var mytests = function() {
         // - cordova/cordova-discuss#57 (issue with cordova-android)
         it(suiteName +
             ' handles UNICODE \\u2028 line separator correctly in database', function (done) {
-          if (isWP8) pending('BROKEN for WP(8)'); // [BUG #202] UNICODE characters not working with WP(8)
+          if (isWP8) pending('BROKEN on WP(8)'); // [BUG #202] UNICODE characters not working with WP(8)
           if (!isWebSql && !isWindows && isAndroid) pending('SKIP for Android plugin (cordova-android 6.x BUG: cordova/cordova-discuss#57)');
           if (!isWebSql && !isWindows && !isAndroid && !isWP8) pending('SKIP for iOS/macOS plugin (Cordova BUG: CB-9435)');
 

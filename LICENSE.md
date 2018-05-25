@@ -14,8 +14,14 @@ Other components:
 
 sqlite3-regexp-cached - adapted by @brodybits (Christopher J. Brody), based on sqlite3-pcre (http://git.altlinux.org/people/at/packages/?p=sqlite3-pcre.git) by Alexey Tourbin, public domain
 
+<<<<<<< HEAD
 sqlite3-base64 by @brodybits (Christopher J. Brody), Unlicense (http://unlicense.org/ - public domain)
 
 libb64-encode - based on libb64 (http://libb64.sourceforge.net/) by Chris Venter, public domain
+=======
+includes and uses PSPDFThreadSafeMutableDictionary (PSPDFThreadSafeMutableDictionary.m <https://gist.github.com/steipete/5928916>) MIT license by @steipete (<https://gist.github.com/steipete>)
+
+## Windows version
+>>>>>>> 87a06a0705576c772a6b2e95f07ca659eca8744c
 
 SQLite3 included for all platforms under public domain license.

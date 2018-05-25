@@ -1,5 +1,9 @@
 /*
+<<<<<<< HEAD
  * Copyright (c) 2012-2018: Christopher J. Brody (aka Chris Brody)
+=======
+ * Copyright (c) 2012-present Christopher J. Brody (aka Chris Brody)
+>>>>>>> 87a06a0705576c772a6b2e95f07ca659eca8744c
  * Copyright (c) 2005-2010, Nitobi Software Inc.
  * Copyright (c) 2010, IBM Corporation
  */
@@ -177,9 +181,9 @@ class SQLiteConnectorDatabase extends SQLiteAndroidDatabase
                     myStatement.bindNull(i + 1);
                 } else {
                     Object p = paramsAsJson.get(i);
-                    if (p instanceof Float || p instanceof Double) 
+                    if (p instanceof Float || p instanceof Double)
                         myStatement.bindDouble(i + 1, paramsAsJson.getDouble(i));
-                    else if (p instanceof Number) 
+                    else if (p instanceof Number)
                         myStatement.bindLong(i + 1, paramsAsJson.getLong(i));
                     else
                         myStatement.bindTextNativeString(i + 1, paramsAsJson.getString(i));
